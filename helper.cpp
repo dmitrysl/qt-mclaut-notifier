@@ -62,7 +62,39 @@ QString Helper::prepareUrl(const QString &params)
 {
     QString str1 = "API[" + sdkVersion + "], " + "Device[" + device + "], " + "Model[" + model + "]," + "Product[" + product + "]";
     QString str2 = "app=mobile&version=" + versionCode + "." + versionName + "&version_code=" + versionCode + "&" + params;
-    return baseUrl + params;
+    return baseUrl + "?hash=" + encode(str2 + "&system_info=" + encode(str1));
+}
+
+QString Helper::executeRequest()
+{
+    // create custom temporary event loop on stack
+    QEventLoop eventLoop;
+
+    // "quit()" the event-loop, when the network request "finished()"
+    QNetworkAccessManager mgr;
+    QObject::connect(&mgr, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
+
+    QNetworkRequest req( QUrl( QString("http://app.mclaut.com/api.php?hash=") ) );
+    QNetworkReply *reply = mgr.get(req);
+    eventLoop.exec(); // blocks stack until "finished()" has been called
+
+    if (reply->error() == QNetworkReply::NoError) {
+        actionOnline();
+        //success
+        QByteArray bytes = reply->readAll();
+        QString response = QString::fromUtf8(bytes);
+
+        delete reply;
+        return response;
+    }
+    else {
+        //failure
+        qDebug() << "Request process failure" << reply->errorString();
+        showMessage(reply->errorString(), "Failure", QSystemTrayIcon::Critical);
+        accountInfo.inProgress = false;
+        delete reply;
+        return NULL;
+    }
 }
 
 int Helper::authClient(const QString &login, const QString &password, int cityId)

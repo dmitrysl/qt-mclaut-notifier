@@ -60,7 +60,7 @@ private:
     enum City { CHERKASY = 0 };
 
 private:
-    QString baseUrl = "http://app.mclaut.com/api.php?hash=";
+    QString baseUrl = "http://app.mclaut.com/api.php";
     int sdkVersion = 19;
     QString device = "S1";
     QString model = "ZP998";
