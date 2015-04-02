@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/images">
+        <file>images/status-tray-away-icon.png</file>
+        <file>images/status-tray-busy-icon.png</file>
+        <file>images/status-tray-offline-icon.png</file>
+        <file>images/status-tray-online-icon.png</file>
+        <file>images/system-tray-icon-16.png</file>
+        <file>images/system-tray-icon-32.png</file>
+        <file>images/wheatgrass-tray-icon-16.png</file>
+        <file alias="wheatgrass-tray-icon-32.png">images/wheatgrass-tray-icon-32.png</file>
+    </qresource>
+    <qresource prefix="/strings"/>
+</RCC>
