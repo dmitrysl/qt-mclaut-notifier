@@ -1,5 +1,14 @@
 #include <QCoreApplication>
+
 #include <QtNetwork/QNetworkInterface>
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkRequest>
+#include <QtNetwork/QNetworkReply>
+#include <QUrl>
+#include <QUrlQuery>
+
+#include <QJsonDocument>
+#include <QJsonObject>
 
 #include "helper.h"
 
@@ -60,12 +69,14 @@ QString Helper::decode(const QString &string)
 
 QString Helper::prepareUrl(const QString &params)
 {
-    QString str1 = "API[" + sdkVersion + "], " + "Device[" + device + "], " + "Model[" + model + "]," + "Product[" + product + "]";
+    //    "app=mobile&version=2.0.0.3&version_code=2&action=checkLogin&login=gag47k36&pass=826346GHyD&city=0&system_info=QVBJWzE5XSwgRGV2aWNlW1MxXSwgTW9kZWxbWlA5OThdLFByb2R1Y3RbUzFd"
+    //    "API[19], Device[S1], Model[ZP998],Product[S1]"
+    QString str1 = "API[" + QString::number(sdkVersion) + "], " + "Device[" + device + "], " + "Model[" + model + "]," + "Product[" + product + "]";
     QString str2 = "app=mobile&version=" + versionCode + "." + versionName + "&version_code=" + versionCode + "&" + params;
     return baseUrl + "?hash=" + encode(str2 + "&system_info=" + encode(str1));
 }
 
-QString Helper::executeRequest()
+QByteArray Helper::executeRequest(const QString &url)
 {
     // create custom temporary event loop on stack
     QEventLoop eventLoop;
@@ -74,34 +85,59 @@ QString Helper::executeRequest()
     QNetworkAccessManager mgr;
     QObject::connect(&mgr, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
 
-    QNetworkRequest req( QUrl( QString("http://app.mclaut.com/api.php?hash=") ) );
+    QNetworkRequest req( QUrl( QString(url + "") ) );
     QNetworkReply *reply = mgr.get(req);
     eventLoop.exec(); // blocks stack until "finished()" has been called
 
     if (reply->error() == QNetworkReply::NoError) {
-        actionOnline();
         //success
         QByteArray bytes = reply->readAll();
         QString response = QString::fromUtf8(bytes);
 
+        qDebug() << "---------------";
+        qDebug() << response;
+
         delete reply;
-        return response;
+        return bytes;
     }
     else {
         //failure
         qDebug() << "Request process failure" << reply->errorString();
-        showMessage(reply->errorString(), "Failure", QSystemTrayIcon::Critical);
-        accountInfo.inProgress = false;
         delete reply;
-        return NULL;
+        return reply->errorString().toUtf8();
     }
 }
 
-int Helper::authClient(const QString &login, const QString &password, int cityId)
+int Helper::authClient(AccountInfo &accountInfo)
+{
+    if (!Helper::isConnectedToNetwork()) return 0;
+
+    QString params = "action=checkLogin&login=" + accountInfo.login + "&pass=" + accountInfo.password + "&city=" + accountInfo.city;
+
+    QString url = prepareUrl(params);
+
+    qDebug() << url;
+
+    QByteArray response = executeRequest(url);
+
+    QJsonDocument loadDoc(QJsonDocument::fromJson(response));
+    QJsonObject obj = loadDoc.object();
+
+    qDebug() << "===============";
+    qDebug() << QString::fromUtf8(response);
+
+//    AccountInfo accountInfo = {0};
+
+//    accountInfo.city = (int) city;
+    accountInfo.status = obj["result"].toInt();
+    accountInfo.certificate = obj["certificate"].toString();
+}
+
+int Helper::authClient(const QString &login, const QString &password, Helper::City city)
 {
      if (!Helper::isConnectedToNetwork()) return 0;
 
-     QString params = "action=checkLogin&login=" + login + "&pass=" + password + "&city=" + cityId;
+     QString params = "action=checkLogin&login=" + login + "&pass=" + password + "&city=" + (int) city;
 
      qDebug() << params;
 
@@ -109,20 +145,51 @@ int Helper::authClient(const QString &login, const QString &password, int cityId
 
      qDebug() << url;
 
-     return 1;
+     QByteArray response = executeRequest(url);
+
+     QJsonDocument loadDoc(QJsonDocument::fromJson(response));
+     QJsonObject obj = loadDoc.object();
+
+     AccountInfo accountInfo = {0};
+
+     accountInfo.city = (int) city;
+     accountInfo.status = obj["result"].toInt();
+     accountInfo.certificate = obj["certificate"].toString();
+
+     return accountInfo.status;
 }
 
-AccountInfo Helper::getInfo(const QString certificate, int cityId)
+void Helper::getInfo(AccountInfo &accountInfo)
 {
-    AccountInfo accountInfo = {0};
-
-    QString params = "action=getInfo&certificate=" + certificate + "&city=" + cityId;
+    QString params = "action=getInfo&certificate=" + accountInfo.certificate + "&city=" + accountInfo.city;
 
     qDebug() << params;
 
     QString url = prepareUrl(params);
 
     qDebug() << url;
+
+    QByteArray response = executeRequest(url);
+
+    QJsonDocument loadDoc(QJsonDocument::fromJson(response));
+    QJsonObject obj = loadDoc.object();
+
+    accountInfo.status = obj["result"].toInt();
+
+    if (accountInfo.status == 1)
+    {
+        accountInfo.id = obj["id"].toString().toInt();
+        accountInfo.login = obj["login"].toString();
+        accountInfo.account = obj["account"].toString().toInt();
+        accountInfo.balance = obj["balance"].toString().toDouble();
+        accountInfo.name = QString::fromUtf16(obj["name"].toString().utf16());
+        long long paymentLastDate = obj["payment_date_last"].toString().toLongLong();
+        if (paymentLastDate > 1000000) {
+            accountInfo.paymentLastDate = QDateTime::fromTime_t(paymentLastDate);
+        }
+        accountInfo.updateLastDate = QDateTime::currentDateTime();
+        accountInfo.inProgress = false;
+    }
 }
 
 QList<Payment> Helper::getPayments(const QString certificate, int cityId)
@@ -136,17 +203,17 @@ QList<Payment> Helper::getPayments(const QString certificate, int cityId)
 
     qDebug() << url;
 
-    int i = localJSONObject1.getInt("result");
-            if (i == 1)
-            {
-getJSONArray("payments");
+//    int i = localJSONObject1.getInt("result");
+//            if (i == 1)
+//            {
+//getJSONArray("payments");
 
-localPaymentsEntity.setClient(localJSONObject2.getInt("id_client"));
-            localPaymentsEntity.setType(localJSONObject2.getInt("type"));
-            localPaymentsEntity.setDate(localJSONObject2.getInt("date"));
-            localPaymentsEntity.setSum(localJSONObject2.getDouble("sum"));
-            localPaymentsEntity.setSumBefore(localJSONObject2.getDouble("sum_before"));
-            }
+//localPaymentsEntity.setClient(localJSONObject2.getInt("id_client"));
+//            localPaymentsEntity.setType(localJSONObject2.getInt("type"));
+//            localPaymentsEntity.setDate(localJSONObject2.getInt("date"));
+//            localPaymentsEntity.setSum(localJSONObject2.getDouble("sum"));
+//            localPaymentsEntity.setSumBefore(localJSONObject2.getDouble("sum_before"));
+//            }
 }
 
 QList<Payment> Helper::getWithdrawal(const QString certificate, int cityId)
@@ -159,16 +226,16 @@ QList<Payment> Helper::getWithdrawal(const QString certificate, int cityId)
 
     qDebug() << url;
 
-    int i = localJSONObject1.getInt("result");
-            if (i == 1)
-            {
+//    int i = localJSONObject1.getInt("result");
+//            if (i == 1)
+//            {
 
-getJSONArray("withdrawals");
+//getJSONArray("withdrawals");
 
-localPaymentsEntity.setClient(localJSONObject2.getInt("id_client"));
-            localPaymentsEntity.setType(localJSONObject2.getInt("type"));
-            localPaymentsEntity.setDate(localJSONObject2.getInt("date"));
-            localPaymentsEntity.setSum(localJSONObject2.getDouble("sum"));
-            localPaymentsEntity.setSumBefore(localJSONObject2.getDouble("sum_before"));
-            }
+//localPaymentsEntity.setClient(localJSONObject2.getInt("id_client"));
+//            localPaymentsEntity.setType(localJSONObject2.getInt("type"));
+//            localPaymentsEntity.setDate(localJSONObject2.getInt("date"));
+//            localPaymentsEntity.setSum(localJSONObject2.getDouble("sum"));
+//            localPaymentsEntity.setSumBefore(localJSONObject2.getDouble("sum_before"));
+//            }
 }

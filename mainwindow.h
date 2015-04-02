@@ -9,24 +9,11 @@
 #include <QDate>
 
 #include "aboutdialog.h"
+#include "helper.h"
 
 namespace Ui {
 class MainWindow;
 }
-
-typedef struct {
-    int id;
-    QString certificate;
-    QString login;
-    int account;
-    double balance;
-    QString name;
-    QDateTime paymentLastDate;
-    QDateTime updateLastDate;
-    bool inProgress;
-    bool showInfoNotification;
-    bool showErrorNotification;
-} AccountInfo;
 
 class MainWindow : public QMainWindow
 {
@@ -67,6 +54,7 @@ private slots:
      void on_actionSave_triggered();
 
 private:
+    Helper helper;
     bool isConnectedToNetwork = false;
     int defaultUpdateInterval = 3600 * 1000;
     int updateInterval = 3600 * 1000;
@@ -77,6 +65,7 @@ private:
     QSystemTrayIcon *tray;
     AboutDialog *aboutDialog;
     QTextEdit *result;
+//    QAction *actionExit;
 };
 
 #endif // MAINWINDOW_H

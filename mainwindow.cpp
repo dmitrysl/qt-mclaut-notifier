@@ -17,12 +17,13 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "aboutdialog.h"
-#include "helper.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    ui->setupUi(this);
+
     QIcon icon(":/images/status-tray-away-icon.png");
     Q_ASSERT(!icon.isNull());
     qDebug() << "icon null: " + !icon.isNull();
@@ -38,24 +39,13 @@ MainWindow::MainWindow(QWidget *parent) :
     accountInfo = {0};
     accountInfo.showInfoNotification = true;
     accountInfo.showErrorNotification = true;
-    qDebug() << accountInfo.id;
-    qDebug() << accountInfo.login;
-    qDebug() << accountInfo.account;
-    qDebug() << accountInfo.balance;
-    qDebug() << accountInfo.name;
-    qDebug() << accountInfo.paymentLastDate;
-    qDebug() << accountInfo.updateLastDate;
-    ui->setupUi(this);
+    accountInfo.city = Helper::CHERKASY;
+
     isConnectedToNetwork = Helper::isConnectedToNetwork();
 
-    qDebug() << isConnectedToNetwork;
+    qDebug() << "isConnectedToNetwork: " + isConnectedToNetwork;
 
-    qDebug() << "---------------\n";
-
-    Helper helper;
-    QString str2 = "app=mobile&version=2.0.0.3&version_code=2&action=checkLogin&login=LOGIN&pass=PASS&city=0&system_info=QVBJWzE5XSwgRGV2aWNlW1MxXSwgTW9kZWxbWlA5OThdLFByb2R1Y3RbUzFd";
-    QString str3 = "QVBJWzE5XSwgRGV2aWNlW1MxXSwgTW9kZWxbWlA5OThdLFByb2R1Y3RbUzFd";
-    qDebug() << helper.decode(str3);
+    helper = Helper();
 }
 
 void MainWindow::setupTrayIcon()
@@ -286,8 +276,25 @@ void MainWindow::on_actionOpen_triggered()
 
 void MainWindow::on_actionSave_triggered()
 {
-    qDebug() << "save";
-    authorize();
+    qDebug() << "authentication";
+
+    QString login = ui->loginField->text().trimmed();
+    QString password = ui->passwordField->text().trimmed();
+
+    if (login == "" || password == "")
+    {
+        showMessage(QString("Login or Password field is empty."), QString("Validation Info"), QSystemTrayIcon::Warning, 2);
+        return;
+    }
+
+    accountInfo.inProgress = true;
+    helper.authClient(accountInfo);
+
+    if (accountInfo.status == 1 && accountInfo.certificate != "")
+    {
+        helper.getInfo(accountInfo);
+        checkStatistics();
+    }
 }
 
 void MainWindow::checkStatistics()
@@ -314,7 +321,7 @@ bool MainWindow::authorize()
     QNetworkAccessManager mgr;
     QObject::connect(&mgr, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
 
-    QNetworkRequest req( QUrl( QString("http://app.mclaut.com/api.php?hash=") ) );
+    QNetworkRequest req( QUrl( QString("http://app.mclaut.com/api.php?hash=YXBwPW1vYmlsZSZ2ZXJzaW9uPTIuMC4wLjMmdmVyc2lvbl9jb2RlPTImYWN0aW9uPWNoZWNrTG9naW4mbG9naW49Z2FnNDdrMzYmcGFzcz04MjYzNDZHSHlEJmNpdHk9MCZzeXN0ZW1faW5mbz1RVkJKV3pFNVhTd2dSR1YyYVdObFcxTXhYU3dnVFc5a1pXeGJXbEE1T1RoZExGQnliMlIxWTNSYlV6RmQ=") ) );
     QNetworkReply *reply = mgr.get(req);
     eventLoop.exec(); // blocks stack until "finished()" has been called
 
@@ -360,7 +367,7 @@ bool MainWindow::getStatistics()
     QNetworkAccessManager mgr;
     QObject::connect(&mgr, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
 
-    QNetworkRequest req( QUrl( QString("http://app.mclaut.com/api.php?hash=") ) );
+    QNetworkRequest req( QUrl( QString("http://app.mclaut.com/api.php?hash=YXBwPW1vYmlsZSZ2ZXJzaW9uPTIuMC4wLjMmdmVyc2lvbl9jb2RlPTImYWN0aW9uPWdldEluZm8mY2VydGlmaWNhdGU9ZTM2NjZlMzE0YjA1MWFkNjJmMGRlNTE4Y2Q2YTA0ZDUmY2l0eT0wJnN5c3RlbV9pbmZvPVFWQkpXekU1WFN3Z1JHVjJhV05sVzFNeFhTd2dUVzlrWld4YldsQTVPVGhkTEZCeWIyUjFZM1JiVXpGZA==") ) );
     QNetworkReply *reply = mgr.get(req);
     eventLoop.exec(); // blocks stack until "finished()" has been called
 
@@ -413,7 +420,7 @@ bool MainWindow::getPayments()
     QNetworkAccessManager mgr;
     QObject::connect(&mgr, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
 
-    QNetworkRequest req( QUrl( QString("http://app.mclaut.com/api.php?hash=") ) );
+    QNetworkRequest req( QUrl( QString("http://app.mclaut.com/api.php?hash=YXBwPW1vYmlsZSZ2ZXJzaW9uPTIuMC4wLjMmdmVyc2lvbl9jb2RlPTImYWN0aW9uPWdldFBheW1lbnRzJmNlcnRpZmljYXRlPWUzNjY2ZTMxNGIwNTFhZDYyZjBkZTUxOGNkNmEwNGQ1JmNpdHk9MCZzeXN0ZW1faW5mbz1RVkJKV3pFNVhTd2dSR1YyYVdObFcxTXhYU3dnVFc5a1pXeGJXbEE1T1RoZExGQnliMlIxWTNSYlV6RmQ=") ) );
     QNetworkReply *reply = mgr.get(req);
     eventLoop.exec(); // blocks stack until "finished()" has been called
 
@@ -450,7 +457,7 @@ bool MainWindow::getWithdrawals()
     QNetworkAccessManager mgr;
     QObject::connect(&mgr, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
 
-    QNetworkRequest req( QUrl( QString("http://app.mclaut.com/api.php?hash=") ) );
+    QNetworkRequest req( QUrl( QString("http://app.mclaut.com/api.php?hash=YXBwPW1vYmlsZSZ2ZXJzaW9uPTIuMC4wLjMmdmVyc2lvbl9jb2RlPTImYWN0aW9uPWdldFdpdGhkcmF3YWxzJmNlcnRpZmljYXRlPWUzNjY2ZTMxNGIwNTFhZDYyZjBkZTUxOGNkNmEwNGQ1JmNpdHk9MCZzeXN0ZW1faW5mbz1RVkJKV3pFNVhTd2dSR1YyYVdObFcxTXhYU3dnVFc5a1pXeGJXbEE1T1RoZExGQnliMlIxWTNSYlV6RmQ=") ) );
     QNetworkReply *reply = mgr.get(req);
     eventLoop.exec(); // blocks stack until "finished()" has been called
 

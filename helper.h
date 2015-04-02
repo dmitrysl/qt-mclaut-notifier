@@ -3,7 +3,9 @@
 
 #include <QString>
 #include <QList>
+#include <QDateTime>
 
+class Helper;
 
 typedef struct {
     int id;
@@ -25,10 +27,14 @@ typedef struct {
     int type;
 } Payment;
 
-typedef struct {
+struct AccountInfo {
     int id;
+    int city;
+    int status;
+    QString errorMessage;
     QString certificate;
     QString login;
+    QString password;
     int account;
     double balance;
     QString name;
@@ -37,27 +43,51 @@ typedef struct {
     bool inProgress;
     bool showInfoNotification;
     bool showErrorNotification;
-} AccountInfo;
+    AccountInfo& operator=(AccountInfo const &info)
+    {
+        id = info.id;
+        city = info.city;
+        status = info.status;
+        errorMessage = info.errorMessage;
+        certificate = info.certificate;
+        login = info.login;
+        account = info.account;
+        balance = info.balance;
+        name = info.name;
+        paymentLastDate = info.paymentLastDate;
+        updateLastDate = info.updateLastDate;
+        inProgress = info.inProgress;
+        showInfoNotification = info.showInfoNotification;
+        showErrorNotification = info.showErrorNotification;
+        return *this;
+    }
+};
+typedef struct AccountInfo AccountInfo;
 
 
 
 class Helper
 {
 public:
+    enum City { CHERKASY = 0 };
+
     Helper();
     ~Helper();
     static bool isConnectedToNetwork();
-    int authClient(const QString &login, const QString &password, int cityId);
-    AccountInfo getInfo(const QString certificate, int cityId);
+    int authClient(const QString &login, const QString &password, Helper::City city = Helper::CHERKASY);
+    int authClient(AccountInfo &accountInfo);
+    void getInfo(AccountInfo &accountInfo);
     QList<Payment> getPayments(const QString certificate, int cityId);
     QList<Payment> getWithdrawal(const QString certificate, int cityId);
     QString decode(const QString &string);
 
+
 private:
+    QByteArray executeRequest(const QString &params);
     QString prepareUrl(const QString &params);
     QString encode(const QString &string);
     enum ActionType { NO_ACTION = 0, CHECK_LOGIN, GET_INFO, GET_PAYMENTS, GET_WITHDRAWALS };
-    enum City { CHERKASY = 0 };
+
 
 private:
     QString baseUrl = "http://app.mclaut.com/api.php";
