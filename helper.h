@@ -4,8 +4,34 @@
 #include <QString>
 #include <QList>
 #include <QDateTime>
+#include <QException>
+#include <exception>
 
-class Helper;
+class GeneralError { /* Your runtime error base class */ };
+
+class NetworkConnectionFailureError: public std::exception  {
+public:
+    NetworkConnectionFailureError(QString message) throw()
+    {
+        this->message = message;
+    }
+    virtual ~NetworkConnectionFailureError() throw()
+    {
+
+    }
+    virtual const char* what() const throw()
+    {
+        return message.toStdString().c_str();;
+    }
+    virtual QString getMessage()
+    {
+        return message;
+    }
+
+private:
+    QString message;
+};
+
 
 typedef struct {
     int id;

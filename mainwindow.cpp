@@ -278,6 +278,16 @@ void MainWindow::on_actionSave_triggered()
 {
     qDebug() << "authentication";
 
+    try
+    {
+        checkNetworkConnection();
+    }
+    catch(NetworkConnectionFailureError &e)
+    {
+        showMessage(e.getMessage(), "Network Connection", QSystemTrayIcon::Critical);
+        return;
+    }
+
     QString login = ui->loginField->text().trimmed();
     QString password = ui->passwordField->text().trimmed();
 
@@ -295,6 +305,17 @@ void MainWindow::on_actionSave_triggered()
         helper.getInfo(accountInfo);
         checkStatistics();
     }
+}
+
+void MainWindow::checkNetworkConnection()
+{
+    isConnectedToNetwork = Helper::isConnectedToNetwork();
+
+    if (isConnectedToNetwork) return;
+
+    showMessage("Cannot connect to the network.", "Network Connection", QSystemTrayIcon::Critical);
+    updateInterval = 600000;
+    throw NetworkConnectionFailureError("Cannot connect to the network.");
 }
 
 void MainWindow::checkStatistics()

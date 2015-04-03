@@ -24,15 +24,16 @@ public:
     ~MainWindow();
 
 protected:
-     void setupTrayIcon();
-     void contextMenuEvent(QContextMenuEvent *event);
-     void changeEvent(QEvent *event);
-     void hideEvent(QHideEvent* pEvent);
-     void showEvent(QShowEvent* pEvent);
-     void updateTrayIcon();
-     void showMessage(const QString &message, const QString &title = "Info",
-                      QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::Information, int duration = 1000);
-     void checkStatistics();
+    void checkNetworkConnection();
+    void setupTrayIcon();
+    void contextMenuEvent(QContextMenuEvent *event);
+    void changeEvent(QEvent *event);
+    void hideEvent(QHideEvent* pEvent);
+    void showEvent(QShowEvent* pEvent);
+    void updateTrayIcon();
+    void showMessage(const QString &message, const QString &title = "Info",
+                     QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::Information, int duration = 1000);
+    void checkStatistics();
 
     bool authorize();
     bool getStatistics();
@@ -40,18 +41,18 @@ protected:
     bool getWithdrawals();
 
 private slots:
-     void updateStatistic();
-     void openDialog();
-     void exit();
-     void onSystemTrayLeftClicked(QSystemTrayIcon::ActivationReason reason);
-     void actionShowWindow();
-     void actionOnline();
-     void actionAway();
-     void trayMessageClicked();
-     void on_actionExit_triggered();
-     void on_actionAbout_triggered();
-     void on_actionOpen_triggered();
-     void on_actionSave_triggered();
+    void updateStatistic();
+    void openDialog();
+    void exit();
+    void onSystemTrayLeftClicked(QSystemTrayIcon::ActivationReason reason);
+    void actionShowWindow();
+    void actionOnline();
+    void actionAway();
+    void trayMessageClicked();
+    void on_actionExit_triggered();
+    void on_actionAbout_triggered();
+    void on_actionOpen_triggered();
+    void on_actionSave_triggered();
 
 private:
     Helper helper;
