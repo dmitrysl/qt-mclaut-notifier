@@ -1,9 +1,12 @@
-#include <QMenu>
+﻿#include <QMenu>
 #include <QIcon>
 #include <QWindowStateChangeEvent>
 #include <QTimer>
 #include <QDebug>
 #include <QMessageBox>
+#include <QList>
+#include <QMap>
+#include <QDir>
 
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
@@ -13,6 +16,8 @@
 
 #include <QJsonDocument>
 #include <QJsonObject>
+
+#include <QDesktopServices>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -24,29 +29,76 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    QIcon icon(":/images/status-tray-away-icon.png");
-    Q_ASSERT(!icon.isNull());
-    qDebug() << "icon null: " + !icon.isNull();
+//    setWindowFlags(windowFlags() |= Qt::FramelessWindowHint);
+
+    setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
+    setFixedSize(width(), height());
 
     setupTrayIcon();
 
-//    actionExit = new QAction(tr("&Exit"), this);
-//    actionExit->setShortcuts(QKeySequence::Close);
-//    actionExit->setStatusTip(tr("Exit"));
-//    connect(actionExit, SIGNAL(clicked()), this, SLOT(exit()));
+    ui->mainToolBar->hide();
 
+    QString applicationLocation = QDesktopServices::storageLocation(QDesktopServices::ApplicationsLocation);
+
+#ifdef QT_DEBUG
+    qDebug() << applicationLocation;
+#endif
 
     accountInfo = {0};
     accountInfo.showInfoNotification = true;
     accountInfo.showErrorNotification = true;
     accountInfo.city = Helper::CHERKASY;
 
-    isConnectedToNetwork = Helper::isConnectedToNetwork();
+    loadAppState();
 
-    qDebug() << "isConnectedToNetwork: " + isConnectedToNetwork;
+    updateAppProperties();
 
-    helper = Helper();
+    updateStatistic();
+
+    if (ui->startMinimizedCheckBox->isChecked())
+    {
+        hide();
+    }
+    else
+    {
+        show();
+    }
 }
+
+
+void MainWindow::updateAppProperties()
+{
+//#ifdef Q_WS_WIN
+    winType = QSysInfo::windowsVersion();
+//    switch(QSysInfo::windowsVersion())
+//    {
+//      case QSysInfo::WV_2000: return "Windows 2000";
+//      case QSysInfo::WV_XP: return "Windows XP";
+//      case QSysInfo::WV_VISTA: return "Windows Vista";
+//      default: return "Windows";
+//    }
+    QString registryPath = "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+//    if (winType == QSysInfo::WV_WINDOWS8)
+//    {
+//        registryPath = "HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Run";
+//    }
+
+    QSettings bootUpSettings(registryPath, QSettings::NativeFormat);
+
+#ifdef QT_DEBUG
+    qDebug() << qApp->applicationFilePath() + qAppName() + ".exe";
+    qDebug() << QCoreApplication::applicationFilePath().replace('/','\\');
+#endif
+
+    if (ui->runOnbootCheckBox->isChecked())
+    {
+        bootUpSettings.setValue(qAppName(), QCoreApplication::applicationFilePath().replace('/','\\') + (ui->startMinimizedCheckBox->isChecked() ? " -m" : ""));
+    }
+    else
+        bootUpSettings.remove(qAppName());
+//#endif
+}
+
 
 void MainWindow::setupTrayIcon()
 {
@@ -88,7 +140,9 @@ void MainWindow::setupTrayIcon()
 
 void MainWindow::trayMessageClicked()
 {
+#ifdef QT_DEBUG
     qDebug() << "clicked";
+#endif
     accountInfo.showErrorNotification = false;
 }
 
@@ -99,11 +153,16 @@ void MainWindow::updateStatistic()
     if (!accountInfo.inProgress && (accountInfo.certificate == "" || accountInfo.updateLastDate < currentDateTime.addSecs(-10)))
     {
         accountInfo.inProgress = true;
+        ui->statusBar->showMessage("Connecting", 1000);
+
+#ifdef QT_DEBUG
         qDebug() << "update";
+#endif
         if (!isConnectedToNetwork) {
             isConnectedToNetwork = Helper::isConnectedToNetwork();
             if (!isConnectedToNetwork)
             {
+                accountInfo.inProgress = false;
                 showMessage("Cannot connect to the network.", "Network Connection", QSystemTrayIcon::Critical);
                 updateInterval = 600000;
                 return;
@@ -113,30 +172,56 @@ void MainWindow::updateStatistic()
         {
             updateInterval = defaultUpdateInterval;
         }
+
         if (!authorized) {
-            authorize();
-            return;
+            authorized = helper.authClient(accountInfo) == Helper::OK;
+            if (!authorized)
+            {
+                accountInfo.inProgress = false;
+                return;
+            }
         }
-        getStatistics();
-        getPayments();
-        getWithdrawals();
+
+        ui->statusBar->showMessage("Connected", 2000);
+
+        User user = helper.getInfo(accountInfo);
+
+        helper.getPayments(accountInfo);
+        helper.getWithdrawals(accountInfo);
+
+        ui->statusBar->showMessage("Information recieved", 2000);
+
+        checkStatistics();
+
+        accountInfo.inProgress = false;
         return;
     }
 }
 
 void MainWindow::onSystemTrayLeftClicked( QSystemTrayIcon::ActivationReason reason )
 {
+//    User user = {0};
     switch (reason) {
         case QSystemTrayIcon::Trigger:
+#ifdef QT_DEBUG
             qDebug() << "triggered";
-            authorize();
+#endif
+//            helper.authClient(accountInfo);
+//            user = helper.getInfo(accountInfo);
+//            helper.getPayments(accountInfo);
+//            helper.getWithdrawals(accountInfo);
+            on_actionSave_triggered();
             break;
         case QSystemTrayIcon::DoubleClick:
+#ifdef QT_DEBUG
             qDebug() << "double click";
+#endif
             actionShowWindow();
             break;
      case QSystemTrayIcon::MiddleClick:
+#ifdef QT_DEBUG
             qDebug() << "middle click";
+#endif
             break;
      default:
             break;
@@ -166,12 +251,12 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 
 void MainWindow::actionShowWindow()
 {
-    if (isMinimized())
+    if (isMinimized() || isHidden())
     {
         qDebug() << "minimized";
         qApp->processEvents();
         show();
-        QApplication::setActiveWindow(this);
+        setWindowState((windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
     }
 }
 
@@ -214,11 +299,11 @@ void MainWindow::changeEvent(QEvent *event)
         // make sure we only do this for minimize events
         if ((e->oldState() != Qt::WindowMinimized) && isMinimized())
         {
-            QMessageBox::information(this, tr("Systray"),
-                                              tr("The program will keep running in the "
-                                                 "system tray. To terminate the program, "
-                                                 "choose <b>Quit</b> in the context menu "
-                                                 "of the system tray entry."));
+//            QMessageBox::information(this, tr("Systray"),
+//                                              tr("The program will keep running in the "
+//                                                 "system tray. To terminate the program, "
+//                                                 "choose <b>Quit</b> in the context menu "
+//                                                 "of the system tray entry."));
             qApp->processEvents();
             hide();
             event->ignore();
@@ -271,7 +356,52 @@ void MainWindow::on_actionAbout_triggered()
 
 void MainWindow::on_actionOpen_triggered()
 {
-    qDebug() << "open";
+    qDebug() << "load settings";
+
+    loadAppState();
+}
+
+void MainWindow::loadAppState()
+{
+    QMap<QString, QString> properties = helper.loadSettings();
+
+    QString runOnbootCheckBox = properties.value("app/runOnbootCheckBox", "0");
+    QString startMinimizedCheckBox = properties.value("app/startMinimizedCheckBox", "0");
+
+    bool runOnbootCheckBoxBool = bool(runOnbootCheckBox.toInt());
+    bool startMinimizedCheckBoxBool = bool(startMinimizedCheckBox.toInt());
+
+    accountInfo.login = Helper::decode(properties.value("account/login", Helper::encode("")));
+    accountInfo.password = Helper::decode(properties.value("account/password", Helper::encode("")));
+
+    ui->loginField->setText(accountInfo.login);
+    ui->passwordField->setText(accountInfo.password);
+    ui->runOnbootCheckBox->setChecked(runOnbootCheckBoxBool);
+    ui->startMinimizedCheckBox->setChecked(startMinimizedCheckBoxBool);
+
+    ui->statusBar->showMessage("Settings loaded", 2000);
+}
+
+void MainWindow::on_actionStore_Settings_triggered()
+{
+    qDebug() << "save settings";
+    QString login = ui->loginField->text().trimmed();
+    QString pass = ui->passwordField->text().trimmed();
+
+    int runOnbootCheckBox = ui->runOnbootCheckBox->isChecked() ? 1 : 0;
+    int startMinimizedCheckBox = ui->startMinimizedCheckBox->isChecked() ? 1 : 0;
+
+    QMap<QString, QString> properties = QMap<QString, QString>();
+
+    properties.insert("account/login", Helper::encode(login));
+    properties.insert("account/password", Helper::encode(pass));
+
+    properties.insert("app/runOnbootCheckBox", QString::number(runOnbootCheckBox));
+    properties.insert("app/startMinimizedCheckBox", QString::number(startMinimizedCheckBox));
+
+    helper.storeSettings(properties);
+
+    ui->statusBar->showMessage("Settings saved", 2000);
 }
 
 void MainWindow::on_actionSave_triggered()
@@ -297,13 +427,18 @@ void MainWindow::on_actionSave_triggered()
         return;
     }
 
+    accountInfo.login = login;
+    accountInfo.password = password;
     accountInfo.inProgress = true;
+
     helper.authClient(accountInfo);
 
     if (accountInfo.status == 1 && accountInfo.certificate != "")
     {
-        helper.getInfo(accountInfo);
+        User user = helper.getInfo(accountInfo);
         checkStatistics();
+        QList<Payment> payments = helper.getPayments(accountInfo);
+        QList<Payment> withdrawals = helper.getWithdrawals(accountInfo);
     }
 }
 
@@ -333,181 +468,12 @@ void MainWindow::checkStatistics()
     }
 }
 
-bool MainWindow::authorize()
+void MainWindow::on_runOnbootCheckBox_clicked()
 {
-    // create custom temporary event loop on stack
-    QEventLoop eventLoop;
-
-    // "quit()" the event-loop, when the network request "finished()"
-    QNetworkAccessManager mgr;
-    QObject::connect(&mgr, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
-
-    QNetworkRequest req( QUrl( QString("http://app.mclaut.com/api.php?hash=YXBwPW1vYmlsZSZ2ZXJzaW9uPTIuMC4wLjMmdmVyc2lvbl9jb2RlPTImYWN0aW9uPWNoZWNrTG9naW4mbG9naW49Z2FnNDdrMzYmcGFzcz04MjYzNDZHSHlEJmNpdHk9MCZzeXN0ZW1faW5mbz1RVkJKV3pFNVhTd2dSR1YyYVdObFcxTXhYU3dnVFc5a1pXeGJXbEE1T1RoZExGQnliMlIxWTNSYlV6RmQ=") ) );
-    QNetworkReply *reply = mgr.get(req);
-    eventLoop.exec(); // blocks stack until "finished()" has been called
-
-    if (reply->error() == QNetworkReply::NoError) {
-        actionOnline();
-        //success
-        QByteArray bytes = reply->readAll();
-        QString response = QString::fromUtf8(bytes);
-        QJsonDocument loadDoc(QJsonDocument::fromJson(bytes));
-        QJsonObject obj = loadDoc.object();
-
-        qDebug() << "Success: " << response;
-        ui->result->setText(response);
-
-        int status = obj["result"].toInt();
-        if (status != 1) return false;
-        accountInfo.certificate = obj["certificate"].toString();
-
-        authorized = true;
-        actionOnline();
-        getStatistics();
-
-        delete reply;
-        return true;
-    }
-    else {
-        //failure
-        actionAway();
-        qDebug() << "Authoriztion Failure" << reply->errorString();
-        showMessage(reply->errorString(), "Failure", QSystemTrayIcon::Critical);
-        accountInfo.inProgress = false;
-        delete reply;
-        return false;
-    }
+    updateAppProperties();
 }
 
-bool MainWindow::getStatistics()
+void MainWindow::on_startMinimizedCheckBox_clicked()
 {
-    // create custom temporary event loop on stack
-    QEventLoop eventLoop;
 
-    // "quit()" the event-loop, when the network request "finished()"
-    QNetworkAccessManager mgr;
-    QObject::connect(&mgr, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
-
-    QNetworkRequest req( QUrl( QString("http://app.mclaut.com/api.php?hash=YXBwPW1vYmlsZSZ2ZXJzaW9uPTIuMC4wLjMmdmVyc2lvbl9jb2RlPTImYWN0aW9uPWdldEluZm8mY2VydGlmaWNhdGU9ZTM2NjZlMzE0YjA1MWFkNjJmMGRlNTE4Y2Q2YTA0ZDUmY2l0eT0wJnN5c3RlbV9pbmZvPVFWQkpXekU1WFN3Z1JHVjJhV05sVzFNeFhTd2dUVzlrWld4YldsQTVPVGhkTEZCeWIyUjFZM1JiVXpGZA==") ) );
-    QNetworkReply *reply = mgr.get(req);
-    eventLoop.exec(); // blocks stack until "finished()" has been called
-
-    if (reply->error() == QNetworkReply::NoError) {
-        actionOnline();
-        //success
-        QByteArray bytes = reply->readAll();
-
-        QString response = QString::fromUtf8(bytes);
-        QJsonDocument loadDoc(QJsonDocument::fromJson(bytes));
-        QJsonObject obj = loadDoc.object();
-
-        qDebug() << "Success: " << response;
-        ui->result->setText(response);
-
-        accountInfo.id = obj["id"].toString().toInt();
-        accountInfo.login = obj["login"].toString();
-        accountInfo.account = obj["account"].toString().toInt();
-        accountInfo.balance = obj["balance"].toString().toDouble();
-        accountInfo.name = QString::fromUtf16(obj["name"].toString().utf16());
-        long long paymentLastDate = obj["payment_date_last"].toString().toLongLong();
-        if (paymentLastDate > 1000000) {
-            accountInfo.paymentLastDate = QDateTime::fromTime_t(paymentLastDate);
-        }
-        accountInfo.updateLastDate = QDateTime::currentDateTime();
-        accountInfo.inProgress = false;
-
-        checkStatistics();
-
-        delete reply;
-        return true;
-    }
-    else {
-        //failure
-        actionAway();
-        qDebug() << "Statistic retrieving Failure" << reply->errorString();
-        showMessage(reply->errorString(), "Failure", QSystemTrayIcon::Critical);
-        accountInfo.inProgress = false;
-        delete reply;
-        return false;
-    }
 }
-
-bool MainWindow::getPayments()
-{
-    // create custom temporary event loop on stack
-    QEventLoop eventLoop;
-
-    // "quit()" the event-loop, when the network request "finished()"
-    QNetworkAccessManager mgr;
-    QObject::connect(&mgr, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
-
-    QNetworkRequest req( QUrl( QString("http://app.mclaut.com/api.php?hash=YXBwPW1vYmlsZSZ2ZXJzaW9uPTIuMC4wLjMmdmVyc2lvbl9jb2RlPTImYWN0aW9uPWdldFBheW1lbnRzJmNlcnRpZmljYXRlPWUzNjY2ZTMxNGIwNTFhZDYyZjBkZTUxOGNkNmEwNGQ1JmNpdHk9MCZzeXN0ZW1faW5mbz1RVkJKV3pFNVhTd2dSR1YyYVdObFcxTXhYU3dnVFc5a1pXeGJXbEE1T1RoZExGQnliMlIxWTNSYlV6RmQ=") ) );
-    QNetworkReply *reply = mgr.get(req);
-    eventLoop.exec(); // blocks stack until "finished()" has been called
-
-    if (reply->error() == QNetworkReply::NoError) {
-        actionOnline();
-        //success
-        QByteArray bytes = reply->readAll();
-        QString response = QString::fromUtf8(bytes);
-        //QJsonDocument loadDoc(QJsonDocument::fromJson(bytes));
-        //QJsonObject obj = loadDoc.object();
-        //QString ip = obj["ip"].toString();
-
-        qDebug() << "Success: " << response;
-        ui->result->setText(response);
-        delete reply;
-        return true;
-    }
-    else {
-        //failure
-        actionAway();
-        qDebug() << "Failure" << reply->errorString();
-        showMessage(reply->errorString(), "Failure", QSystemTrayIcon::Critical);
-        delete reply;
-        return false;
-    }
-}
-
-bool MainWindow::getWithdrawals()
-{
-    // create custom temporary event loop on stack
-    QEventLoop eventLoop;
-
-    // "quit()" the event-loop, when the network request "finished()"
-    QNetworkAccessManager mgr;
-    QObject::connect(&mgr, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
-
-    QNetworkRequest req( QUrl( QString("http://app.mclaut.com/api.php?hash=YXBwPW1vYmlsZSZ2ZXJzaW9uPTIuMC4wLjMmdmVyc2lvbl9jb2RlPTImYWN0aW9uPWdldFdpdGhkcmF3YWxzJmNlcnRpZmljYXRlPWUzNjY2ZTMxNGIwNTFhZDYyZjBkZTUxOGNkNmEwNGQ1JmNpdHk9MCZzeXN0ZW1faW5mbz1RVkJKV3pFNVhTd2dSR1YyYVdObFcxTXhYU3dnVFc5a1pXeGJXbEE1T1RoZExGQnliMlIxWTNSYlV6RmQ=") ) );
-    QNetworkReply *reply = mgr.get(req);
-    eventLoop.exec(); // blocks stack until "finished()" has been called
-
-    if (reply->error() == QNetworkReply::NoError) {
-        actionOnline();
-        //success
-        QByteArray bytes = reply->readAll();
-        QString response = QString::fromUtf8(bytes);
-        //QJsonDocument loadDoc(QJsonDocument::fromJson(bytes));
-        //QJsonObject obj = loadDoc.object();
-        //QString ip = obj["ip"].toString();
-
-        qDebug() << "Success: " << response;
-        ui->result->setText(response);
-        delete reply;
-        return true;
-    }
-    else {
-        //failure
-        actionAway();
-        qDebug() << "Failure" << reply->errorString();
-        showMessage(reply->errorString(), "Failure", QSystemTrayIcon::Critical);
-        delete reply;
-        return false;
-    }
-}
-
-
-
-
-
-

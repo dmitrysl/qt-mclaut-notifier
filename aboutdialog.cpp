@@ -20,5 +20,7 @@ AboutDialog::~AboutDialog()
 
 void AboutDialog::closeEvent(QCloseEvent *e)
 {
+#ifdef QT_DEBUG
     qDebug() << "close about dialog";
+#endif
 }

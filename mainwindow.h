@@ -8,6 +8,9 @@
 #include <QTextEdit>
 #include <QDate>
 
+#include <QSysInfo>
+#include <QSettings>
+
 #include "aboutdialog.h"
 #include "helper.h"
 
@@ -34,11 +37,8 @@ protected:
     void showMessage(const QString &message, const QString &title = "Info",
                      QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::Information, int duration = 1000);
     void checkStatistics();
-
-    bool authorize();
-    bool getStatistics();
-    bool getPayments();
-    bool getWithdrawals();
+    void loadAppState();
+    void updateAppProperties();
 
 private slots:
     void updateStatistic();
@@ -54,7 +54,15 @@ private slots:
     void on_actionOpen_triggered();
     void on_actionSave_triggered();
 
+    void on_actionStore_Settings_triggered();
+
+    void on_runOnbootCheckBox_clicked();
+
+    void on_startMinimizedCheckBox_clicked();
+
 private:
+    QSysInfo::WinVersion winType;
+    QSettings *settings;
     Helper helper;
     bool isConnectedToNetwork = false;
     int defaultUpdateInterval = 3600 * 1000;

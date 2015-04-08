@@ -5,7 +5,12 @@
 #include <QList>
 #include <QDateTime>
 #include <QException>
+#include <QSettings>
+#include <QMap>
+
 #include <exception>
+
+#include "utils.h"
 
 class GeneralError { /* Your runtime error base class */ };
 
@@ -36,17 +41,17 @@ private:
 typedef struct {
     int id;
     int clientId;
-    int isActive;
+    bool isActive;
     QString login;
     double payAtDay;
-    int periodFinish;
-    int periodStart;
+    QDateTime periodFinish;
+    QDateTime periodStart;
     QString tariff;
 } User;
 
 typedef struct {
-    int client;
-    int date;
+    int clientId;
+    QDateTime date;
     int kind;
     double sum;
     double sum_before;
@@ -96,26 +101,33 @@ class Helper
 {
 public:
     enum City { CHERKASY = 0 };
+    enum STATUS {NONE = 0, OK};
 
     Helper();
     ~Helper();
+
     static bool isConnectedToNetwork();
-    int authClient(const QString &login, const QString &password, Helper::City city = Helper::CHERKASY);
+    static QString encode(const QString &string);
+    static QString decode(const QString &string);
+
     int authClient(AccountInfo &accountInfo);
-    void getInfo(AccountInfo &accountInfo);
-    QList<Payment> getPayments(const QString certificate, int cityId);
-    QList<Payment> getWithdrawal(const QString certificate, int cityId);
-    QString decode(const QString &string);
+    User getInfo(AccountInfo &accountInfo);
+    QList<Payment> getPayments(AccountInfo &accountInfo);
+    QList<Payment> getWithdrawals(AccountInfo &accountInfo);
+    QMap<QString, QString> loadSettings();
+    void storeSettings(QMap<QString, QString> properties);
 
 
 private:
     QByteArray executeRequest(const QString &params);
     QString prepareUrl(const QString &params);
-    QString encode(const QString &string);
     enum ActionType { NO_ACTION = 0, CHECK_LOGIN, GET_INFO, GET_PAYMENTS, GET_WITHDRAWALS };
 
-
+public:
+    static QString APP_NAME;
 private:
+    QMap<QString, QString> properties;
+    QSettings *settings;
     QString baseUrl = "http://app.mclaut.com/api.php";
     int sdkVersion = 19;
     QString device = "S1";

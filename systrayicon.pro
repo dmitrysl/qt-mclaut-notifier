@@ -9,18 +9,20 @@ CONFIG += static
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-TARGET = systrayicon
+TARGET = McLautAccountInfo
 TEMPLATE = app
 
 
 SOURCES += main.cpp\
         mainwindow.cpp \
     aboutdialog.cpp \
-    helper.cpp
+    helper.cpp \
+    utils.cpp
 
 HEADERS  += mainwindow.h \
     aboutdialog.h \
-    helper.h
+    helper.h \
+    utils.h
 
 FORMS    += mainwindow.ui
 
