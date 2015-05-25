@@ -210,7 +210,7 @@ User Helper::getInfo(AccountInfo &accountInfo)
 
     accountInfo.status = obj["result"].toInt();
 
-    User user = {0};
+    User user = User();
 
     if (accountInfo.status == OK)
     {
@@ -267,7 +267,7 @@ QList<Payment> Helper::getPayments(AccountInfo &accountInfo)
             foreach (const QJsonValue &paymentJson, paymentsJson)
             {
                 QJsonObject paymentObj = paymentJson.toObject();
-                Payment payment = {0};
+                Payment payment = Payment();
                 payment.clientId = paymentObj["id_client"].toString().toInt();
                 payment.type = paymentObj["type"].toInt();
                 payment.date = QDateTime::fromTime_t(paymentObj["date"].toString().toLongLong());
@@ -313,7 +313,7 @@ QList<Payment> Helper::getWithdrawals(AccountInfo &accountInfo)
             foreach (const QJsonValue &paymentJson, paymentsJson)
             {
                 QJsonObject paymentObj = paymentJson.toObject();
-                Payment payment = {0};
+                Payment payment = Payment();
                 payment.clientId = paymentObj["id_client"].toString().toInt();
                 payment.type = paymentObj["type"].toInt();
                 payment.date = QDateTime::fromTime_t(paymentObj["date"].toString().toLongLong());

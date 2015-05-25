@@ -18,8 +18,9 @@ AboutDialog::~AboutDialog()
 
 }
 
-void AboutDialog::closeEvent(QCloseEvent *e)
+void AboutDialog::closeEvent(QCloseEvent *event)
 {
+    Q_UNUSED(event)
 #ifdef QT_DEBUG
     qDebug() << "close about dialog";
 #endif

@@ -5,7 +5,7 @@
 #-------------------------------------------------
 
 QT       += core gui network
-CONFIG += static
+CONFIG += static c++11
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 

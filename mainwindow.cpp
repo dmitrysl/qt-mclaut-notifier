@@ -38,13 +38,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->mainToolBar->hide();
 
-    QString applicationLocation = QDesktopServices::storageLocation(QDesktopServices::ApplicationsLocation);
+    //QString applicationLocation = QDesktopServices::storageLocation(QDesktopServices::ApplicationsLocation);
 
 #ifdef QT_DEBUG
-    qDebug() << applicationLocation;
+    //qDebug() << applicationLocation;
 #endif
 
-    accountInfo = {0};
+    accountInfo = AccountInfo();
     accountInfo.showInfoNotification = true;
     accountInfo.showErrorNotification = true;
     accountInfo.city = Helper::CHERKASY;
@@ -240,6 +240,7 @@ void MainWindow::showMessage(const QString &message, const QString &title,
 
 void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 {
+    Q_UNUSED(event)
     showMessage("context menu initiated");
     qDebug("context menu");
     QMenu menu(this);
@@ -455,8 +456,11 @@ void MainWindow::checkNetworkConnection()
 
 void MainWindow::checkStatistics()
 {
-    qDebug() << (accountInfo.balance < 26.0);
-    if (accountInfo.balance < 26.0 && accountInfo.showErrorNotification) {
+#ifdef QT_DEBUG
+    qDebug() << (accountInfo.balance < 10.0);
+#endif
+
+    if (accountInfo.balance < 10.0 && accountInfo.showErrorNotification) {
         QString msg = QString("Остаток: ") + QString::number(accountInfo.balance, 'f', 2) + QString("грн. Нужно пополнить счет.");
         showMessage(msg, QString("Пополнение счета!!!"), QSystemTrayIcon::Critical, 10);
     } else if (accountInfo.showInfoNotification) {

@@ -53,11 +53,8 @@ private slots:
     void on_actionAbout_triggered();
     void on_actionOpen_triggered();
     void on_actionSave_triggered();
-
     void on_actionStore_Settings_triggered();
-
     void on_runOnbootCheckBox_clicked();
-
     void on_startMinimizedCheckBox_clicked();
 
 private:
@@ -65,7 +62,7 @@ private:
     QSettings *settings;
     Helper helper;
     bool isConnectedToNetwork = false;
-    int defaultUpdateInterval = 3600 * 1000;
+    int defaultUpdateInterval = 5* 3600 * 1000;
     int updateInterval = 3600 * 1000;
     bool authorized = false;
     AccountInfo accountInfo;
