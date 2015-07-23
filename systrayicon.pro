@@ -22,7 +22,8 @@ SOURCES += main.cpp\
 HEADERS  += mainwindow.h \
     aboutdialog.h \
     helper.h \
-    utils.h
+    utils.h \
+    program_details.h
 
 FORMS    += mainwindow.ui
 
@@ -30,3 +31,8 @@ DISTFILES +=
 
 RESOURCES += \
     res.qrc
+	
+win32:VERSION = 1.2.3.4 # major.minor.patch.build
+else:VERSION = 1.2.3    # major.minor.patch
+
+win32:RC_FILE=app.rc

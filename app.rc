@@ -1,0 +1,23 @@
+#include <windows.h>
+#include "program_details.h"
+ 
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     _FILE_VERSION
+PRODUCTVERSION  _PRODUCT_VERSION
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "CompanyName",        _STR_COMPANY_NAME
+            VALUE "FileDescription",    _STR_FILE_DESCRIPTION
+            VALUE "FileVersion",        _STR_FILE_VERSION
+            VALUE "InternalName",       _STR_INTERNAL_NAME
+            VALUE "LegalCopyright",     _STR_LEGAL_COPYRIGHT
+            VALUE "LegalTrademarks1",   _STR_LEGAL_TRADE_1
+            VALUE "OriginalFilename",   _STR_ORIGINAL_FILE_NAME
+            VALUE "ProductName",        _STR_PRODUCT_NAME
+            VALUE "ProductVersion",     _STR_PRODUCT_VERSION
+        END
+    END
+END
