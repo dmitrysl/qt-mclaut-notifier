@@ -26,5 +26,6 @@ install:
 script:
 #    - qmake -qt=qt5 -v
 #    - qmake -qt=qt5
-    - qmake -r
-    - make check
+    - qmake systrayicon.pro
+    - make
+#    - make check
