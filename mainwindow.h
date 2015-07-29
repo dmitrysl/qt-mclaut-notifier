@@ -58,7 +58,9 @@ private slots:
     void on_startMinimizedCheckBox_clicked();
 
 private:
+#ifdef Q_WS_WIN
     QSysInfo::WinVersion winType;
+#endif
     QSettings *settings;
     Helper helper;
     bool isConnectedToNetwork = false;
