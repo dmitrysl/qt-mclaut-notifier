@@ -32,15 +32,7 @@ install:
       /opt/qt54/bin/qt54-env.sh; fi
 
 script:
-<<<<<<< HEAD
 #    - qmake -qt=qt5 -v - qmake -qt=qt5
     - qmake systrayicon.pro -r -spec linux-g++ "CONFIG+=release"
     - make
-=======
-#    - qmake -qt=qt5 -v
-#    - qmake -qt=qt5
-    - qmake systrayicon.pro
-    - sed -i "s/-std=c++0x/-std=c++11/" Makefile 
-#    - make
->>>>>>> c4ed2d9ae88f1e1d144d4a9cfdcbe88ad9e67c0f
 #    - make check
