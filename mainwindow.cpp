@@ -68,8 +68,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
 void MainWindow::updateAppProperties()
 {
-//#ifdef Q_WS_WIN
+#ifdef Q_WS_WIN
     winType = QSysInfo::windowsVersion();
+
 //    switch(QSysInfo::windowsVersion())
 //    {
 //      case QSysInfo::WV_2000: return "Windows 2000";
@@ -96,7 +97,7 @@ void MainWindow::updateAppProperties()
     }
     else
         bootUpSettings.remove(qAppName());
-//#endif
+#endif
 }
 
 
