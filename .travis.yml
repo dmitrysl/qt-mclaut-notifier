@@ -33,6 +33,8 @@ install:
 
 script:
     - cat /opt/qt54/mkspecs/linux-g++/qmake.conf
+    - g++ --version
+    - make --version
 #    - qmake -qt=qt5 -v - qmake -qt=qt5
     - qmake systrayicon.pro -r -spec linux-g++ "CONFIG+=release"
     - make
