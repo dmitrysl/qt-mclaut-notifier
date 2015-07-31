@@ -5,6 +5,9 @@ language: cpp
 compiler:
     - gcc
 
+os:
+  - linux
+
 env:
     - QT_BASE=53
     - QT_BASE=54
@@ -32,7 +35,7 @@ install:
       /opt/qt54/bin/qt54-env.sh; fi
 
 script:
-    - cat /opt/qt54/mkspecs/linux-g++/qmake.conf
+    - cat /opt/qt$QT_BASE/mkspecs/linux-g++/qmake.conf
     - g++ --version
     - make --version
 #    - qmake -qt=qt5 -v - qmake -qt=qt5
