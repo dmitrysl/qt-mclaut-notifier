@@ -37,6 +37,6 @@ script:
     - make --version
 #    - qmake -qt=qt5 -v - qmake -qt=qt5
     - qmake systrayicon.pro -r -spec linux-g++ "CONFIG+=release"
-    - sed -i "s/g++/$CXX/" Makefile
+    - sed -i "0,/RE/s/g++/$CXX/" Makefile
     - make
 #    - make check
