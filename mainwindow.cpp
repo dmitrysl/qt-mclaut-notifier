@@ -68,9 +68,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
 void MainWindow::updateAppProperties()
 {
-#ifdef Q_WS_WIN
+//#ifdef Q_WS_WIN
     winType = QSysInfo::windowsVersion();
-#endif
 //    switch(QSysInfo::windowsVersion())
 //    {
 //      case QSysInfo::WV_2000: return "Windows 2000";
@@ -159,7 +158,8 @@ void MainWindow::updateStatistic()
 #ifdef QT_DEBUG
         qDebug() << "update";
 #endif
-        if (!isConnectedToNetwork) {
+        if (!isConnectedToNetwork)
+        {
             isConnectedToNetwork = Helper::isConnectedToNetwork();
             if (!isConnectedToNetwork)
             {
@@ -174,13 +174,20 @@ void MainWindow::updateStatistic()
             updateInterval = defaultUpdateInterval;
         }
 
-        if (!authorized) {
+        if (!authorized)
+        {
             authorized = helper.authClient(accountInfo) == Helper::OK;
             if (!authorized)
             {
                 accountInfo.inProgress = false;
                 return;
             }
+        }
+
+        if (trayStatus == 2)
+        {
+            accountInfo.inProgress = false;
+            return;
         }
 
         ui->statusBar->showMessage("Connected", 2000);
@@ -195,7 +202,6 @@ void MainWindow::updateStatistic()
         checkStatistics();
 
         accountInfo.inProgress = false;
-        return;
     }
 }
 
