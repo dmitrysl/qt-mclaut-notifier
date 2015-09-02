@@ -376,6 +376,7 @@ void MainWindow::loadAppState()
 
     QString runOnbootCheckBox = properties.value("app/runOnbootCheckBox", "0");
     QString startMinimizedCheckBox = properties.value("app/startMinimizedCheckBox", "0");
+    QString appStatus = properties.value("app/status", "0");
 
     bool runOnbootCheckBoxBool = bool(runOnbootCheckBox.toInt());
     bool startMinimizedCheckBoxBool = bool(startMinimizedCheckBox.toInt());
@@ -387,6 +388,18 @@ void MainWindow::loadAppState()
     ui->passwordField->setText(accountInfo.password);
     ui->runOnbootCheckBox->setChecked(runOnbootCheckBoxBool);
     ui->startMinimizedCheckBox->setChecked(startMinimizedCheckBoxBool);
+
+    switch(appStatus.toInt())
+    {
+    case 1:
+        actionOnline(); break;
+    case 2:
+        actionAway(); break;
+    case 3:
+        actionAway(); break;
+    default:
+        actionOnline(); break;
+    }
 
     ui->statusBar->showMessage("Settings loaded", 2000);
 }
@@ -407,6 +420,7 @@ void MainWindow::on_actionStore_Settings_triggered()
 
     properties.insert("app/runOnbootCheckBox", QString::number(runOnbootCheckBox));
     properties.insert("app/startMinimizedCheckBox", QString::number(startMinimizedCheckBox));
+    properties.insert("app/status", QString::number(trayStatus));
 
     helper.storeSettings(properties);
 
