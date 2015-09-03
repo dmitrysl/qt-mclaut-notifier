@@ -53,11 +53,13 @@ QMap<QString, QString> Helper::loadSettings()
     pass = settings->value("account/password", "").toString();
     QString runOnbootCheckBox = settings->value("app/runOnbootCheckBox", "0").toString();
     QString startMinimizedCheckBoxBool = settings->value("app/startMinimizedCheckBox", "0").toString();
+    QString appStatus = settings->value("app/status", "0").toString();
 
     properties.insert("account/login", login);
     properties.insert("account/password", pass);
     properties.insert("app/runOnbootCheckBox", runOnbootCheckBox);
     properties.insert("app/startMinimizedCheckBox", startMinimizedCheckBoxBool);
+    properties.insert("app/status", appStatus);
 
     return properties;
 }
