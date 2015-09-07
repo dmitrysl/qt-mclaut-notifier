@@ -4,12 +4,13 @@
 
 #include "aboutdialog.h"
 
-AboutDialog::AboutDialog(QWidget *parent) : QWidget(parent)
+AboutDialog::AboutDialog(const QRect &geometry, QWidget *parent) : QWidget(parent)
 {
     QVBoxLayout *layout = new QVBoxLayout;
     QLabel *label = new QLabel("Developer: ", this);
     layout->addWidget(label);
     layout->addWidget(new QLabel("Dmitry Slepchenko", this));
+    this->setGeometry(QRect(geometry.x() + 100, geometry.y() + 100, 250, 80));
     setLayout(layout);
 }
 

@@ -17,13 +17,15 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     aboutdialog.cpp \
     helper.cpp \
-    utils.cpp
+    utils.cpp \
+    appsettingsstorage.cpp
 
 HEADERS  += mainwindow.h \
     aboutdialog.h \
     helper.h \
     utils.h \
-    program_details.h
+    program_details.h \
+    appsettingsstorage.h
 
 FORMS    += mainwindow.ui
 

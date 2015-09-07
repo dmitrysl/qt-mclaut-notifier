@@ -7,7 +7,7 @@ class AboutDialog : public QWidget
 {
     Q_OBJECT
 public:
-    explicit AboutDialog(QWidget *parent = 0);
+    explicit AboutDialog(const QRect &geometry, QWidget *parent = 0);
     ~AboutDialog();
 
 protected:

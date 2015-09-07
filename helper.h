@@ -7,6 +7,7 @@
 #include <QException>
 #include <QSettings>
 #include <QMap>
+#include <QUrlQuery>
 
 #include <exception>
 
@@ -102,6 +103,7 @@ class Helper
 public:
     enum City { CHERKASY = 0 };
     enum STATUS {NONE = 0, OK};
+    enum HttpMethod {OPTIONS = 0, GET, POST, PUT, DELETE};
 
     Helper();
     ~Helper();
@@ -119,7 +121,9 @@ public:
 
 
 private:
-    QByteArray executeRequest(const QString &params);
+    QByteArray executeRequest(const QUrlQuery &qUrlQuery, const HttpMethod &method = HttpMethod::GET);
+    QByteArray executeRequest(const QString &params, const HttpMethod &method = HttpMethod::GET);
+    QString prepareUrl(QUrlQuery &query);
     QString prepareUrl(const QString &params);
     enum ActionType { NO_ACTION = 0, CHECK_LOGIN, GET_INFO, GET_PAYMENTS, GET_WITHDRAWALS };
 

@@ -14,6 +14,7 @@
 #include <QJsonArray>
 
 #include "helper.h"
+#include "appsettingsstorage.h"
 
 QString Helper::APP_NAME = "McLautAccountInfo";
 
@@ -29,8 +30,8 @@ Helper::~Helper()
 
 QMap<QString, QString> Helper::loadSettings()
 {
-    QString login = properties.value("account/login", "");
-    QString pass = properties.value("account/password", "");
+    QString login = properties.value(AppSettingsStorage::settingsMap.take(AppSettingsStorage::ACCOUNT_LOGIN), "");
+    QString pass = properties.value(AppSettingsStorage::settingsMap.take(AppSettingsStorage::ACCOUNT_PASS), "");
 
     settings = new QSettings(qApp->applicationDirPath() + QDir::separator() + "settings.conf", QSettings::IniFormat);
 
@@ -85,7 +86,7 @@ bool Helper::isConnectedToNetwork()
 #ifdef QT_DEBUG
             // details of connection
             qDebug() << "name:" << iface.name() << endl
-                     << "ip addresses:" << endl
+                     << "ip addresses:" << iface.addressEntries().length() << endl
                      << "mac:" << iface.hardwareAddress() << endl;
 #endif
             for (int j=0; j<iface.addressEntries().count(); j++)
@@ -114,20 +115,35 @@ QString Helper::encode(const QString &string)
 QString Helper::decode(const QString &string)
 {
     QByteArray ba;
-        ba.append(string);
-        return QByteArray::fromBase64(ba);
+    ba.append(string);
+    return QByteArray::fromBase64(ba);
+}
+
+QString Helper::prepareUrl(QUrlQuery &query)
+{
+    //    "app=mobile&version=2.0.0.3&version_code=2&action=checkLogin&login=&pass=&city=0&system_info=QVBJWzE5XSwgRGV2aWNlW1MxXSwgTW9kZWxbWlA5OThdLFByb2R1Y3RbUzFd"
+    //    "API[19], Device[S1], Model[ZP998],Product[S1]"
+    QString str1 = "API[" + QString::number(sdkVersion) + "], " + "Device[" + device + "], " + "Model[" + model + "]," + "Product[" + product + "]";
+    QString str2 = "app=mobile&version=" + versionCode + "." + versionName + "&version_code=" + versionCode + "&" + query.toString();
+
+    query.addQueryItem("app", "mobile");
+    query.addQueryItem("version", versionCode + "." + versionName);
+    query.addQueryItem("version_code", versionCode);
+    query.addQueryItem("hash", encode(str2 + "&system_info=" + encode(str1)));
+
+    return baseUrl + "?hash=" + encode(str2 + "&system_info=" + encode(str1));
 }
 
 QString Helper::prepareUrl(const QString &params)
 {
-    //    "app=mobile&version=2.0.0.3&version_code=2&action=checkLogin&login=gag47k36&pass=826346GHyD&city=0&system_info=QVBJWzE5XSwgRGV2aWNlW1MxXSwgTW9kZWxbWlA5OThdLFByb2R1Y3RbUzFd"
+    //    "app=mobile&version=2.0.0.3&version_code=2&action=checkLogin&login=&pass=&city=0&system_info=QVBJWzE5XSwgRGV2aWNlW1MxXSwgTW9kZWxbWlA5OThdLFByb2R1Y3RbUzFd"
     //    "API[19], Device[S1], Model[ZP998],Product[S1]"
     QString str1 = "API[" + QString::number(sdkVersion) + "], " + "Device[" + device + "], " + "Model[" + model + "]," + "Product[" + product + "]";
     QString str2 = "app=mobile&version=" + versionCode + "." + versionName + "&version_code=" + versionCode + "&" + params;
     return baseUrl + "?hash=" + encode(str2 + "&system_info=" + encode(str1));
 }
 
-QByteArray Helper::executeRequest(const QString &url)
+QByteArray Helper::executeRequest(const QUrlQuery &qUrlQuery, const HttpMethod &method)
 {
     // create custom temporary event loop on stack
     QEventLoop eventLoop;
@@ -136,11 +152,41 @@ QByteArray Helper::executeRequest(const QString &url)
     QNetworkAccessManager mgr;
     QObject::connect(&mgr, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
 
-    QNetworkRequest req( QUrl( QString(url + "") ) );
-    QNetworkReply *reply = mgr.get(req);
+    QUrl queryUrl;
+    queryUrl.setUrl(baseUrl);
+    queryUrl.setQuery(qUrlQuery);
+
+    qDebug() << queryUrl.toString();
+
+    QNetworkRequest req(queryUrl);
+
+    QNetworkReply *reply;
+    QByteArray data;
+
+    switch (method) {
+    case HttpMethod::GET:
+        reply = mgr.get(req);
+        break;
+    case HttpMethod::POST:
+        reply = mgr.post(req, data);
+        break;
+    case HttpMethod::PUT:
+        reply = mgr.put(req, data);
+        break;
+    case HttpMethod::DELETE:
+        reply = mgr.deleteResource(req);
+        break;
+    default:
+        reply = mgr.get(req);
+        break;
+    }
+
+//    QNetworkRequest req( QUrl( QString(url + "") ) );
+//    QNetworkReply *reply = mgr.get(req);
     eventLoop.exec(); // blocks stack until "finished()" has been called
 
-    if (reply->error() == QNetworkReply::NoError) {
+    if (reply->error() == QNetworkReply::NoError)
+    {
         //success
         QByteArray bytes = reply->readAll();
         QString response = QString::fromUtf8(bytes);
@@ -153,7 +199,75 @@ QByteArray Helper::executeRequest(const QString &url)
         delete reply;
         return bytes;
     }
-    else {
+    else
+    {
+        //failure
+#ifdef QT_DEBUG
+        qDebug() << "Request process failure" << reply->errorString();
+#endif
+        delete reply;
+        return reply->errorString().toUtf8();
+    }
+}
+
+QByteArray Helper::executeRequest(const QString &url, const HttpMethod &method)
+{
+    // create custom temporary event loop on stack
+    QEventLoop eventLoop;
+
+    // "quit()" the event-loop, when the network request "finished()"
+    QNetworkAccessManager mgr;
+    QObject::connect(&mgr, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
+
+    QUrl queryUrl;
+    queryUrl.setUrl(baseUrl);
+    queryUrl.setQuery(QUrlQuery(url.mid(url.indexOf("?")+1, url.length())));
+
+    qDebug() << queryUrl.toString();
+
+    QNetworkRequest req(queryUrl);
+
+    QNetworkReply *reply;
+    QByteArray data;
+
+    switch (method) {
+    case HttpMethod::GET:
+        reply = mgr.get(req);
+        break;
+    case HttpMethod::POST:
+        reply = mgr.post(req, data);
+        break;
+    case HttpMethod::PUT:
+        reply = mgr.put(req, data);
+        break;
+    case HttpMethod::DELETE:
+        reply = mgr.deleteResource(req);
+        break;
+    default:
+        reply = mgr.get(req);
+        break;
+    }
+
+//    QNetworkRequest req( QUrl( QString(url + "") ) );
+//    QNetworkReply *reply = mgr.get(req);
+    eventLoop.exec(); // blocks stack until "finished()" has been called
+
+    if (reply->error() == QNetworkReply::NoError)
+    {
+        //success
+        QByteArray bytes = reply->readAll();
+        QString response = QString::fromUtf8(bytes);
+
+#ifdef QT_DEBUG
+        qDebug() << "---------------";
+        qDebug() << response;
+#endif
+
+        delete reply;
+        return bytes;
+    }
+    else
+    {
         //failure
 #ifdef QT_DEBUG
         qDebug() << "Request process failure" << reply->errorString();
@@ -167,6 +281,15 @@ int Helper::authClient(AccountInfo &accountInfo)
 {
     if (!Helper::isConnectedToNetwork()) return 0;
 
+    QUrlQuery query;
+    query.addQueryItem("action", "checkLogin");
+    query.addQueryItem("login", accountInfo.login);
+    query.addQueryItem("pass", accountInfo.password);
+    query.addQueryItem("city", QString::number(accountInfo.city));
+
+    qDebug() << "QUrlQuery: " << endl;
+    qDebug() << query.toString();
+
     QString params = "action=checkLogin&login=" + accountInfo.login + "&pass=" + accountInfo.password + "&city=" + accountInfo.city;
 
     QString url = prepareUrl(params);
@@ -175,7 +298,7 @@ int Helper::authClient(AccountInfo &accountInfo)
     qDebug() << url;
 #endif
 
-    QByteArray response = executeRequest(url);
+    QByteArray response = executeRequest(prepareUrl(query));
 
     QJsonDocument loadDoc(QJsonDocument::fromJson(response));
     QJsonObject obj = loadDoc.object();
@@ -205,7 +328,15 @@ User Helper::getInfo(AccountInfo &accountInfo)
     qDebug() << url;
 #endif
 
-    QByteArray response = executeRequest(url);
+    QUrlQuery query;
+    query.addQueryItem("action", "getInfo");
+    query.addQueryItem("certificate", accountInfo.certificate);
+    query.addQueryItem("city", QString::number(accountInfo.city));
+
+    qDebug() << "QUrlQuery: " << endl;
+    qDebug() << query.toString();
+
+    QByteArray response = executeRequest(prepareUrl(query));
 
     QJsonDocument loadDoc(QJsonDocument::fromJson(response));
     QJsonObject obj = loadDoc.object();
@@ -254,7 +385,16 @@ QList<Payment> Helper::getPayments(AccountInfo &accountInfo)
     qDebug() << url;
 #endif
 
-    QByteArray response = executeRequest(url);
+    QUrlQuery query;
+    query.addQueryItem("action", "getPayments");
+    query.addQueryItem("certificate", accountInfo.certificate);
+    query.addQueryItem("city", QString::number(accountInfo.city));
+
+    qDebug() << "QUrlQuery: " << endl;
+    qDebug() << query.toString();
+
+
+    QByteArray response = executeRequest(prepareUrl(query));
 
     QJsonDocument loadDoc(QJsonDocument::fromJson(response));
     QJsonObject obj = loadDoc.object();
@@ -300,7 +440,16 @@ QList<Payment> Helper::getWithdrawals(AccountInfo &accountInfo)
     qDebug() << url;
 #endif
 
-    QByteArray response = executeRequest(url);
+    QUrlQuery query;
+    query.addQueryItem("action", "getWithdrawals");
+    query.addQueryItem("certificate", accountInfo.certificate);
+    query.addQueryItem("city", QString::number(accountInfo.city));
+
+    qDebug() << "QUrlQuery: " << endl;
+    qDebug() << query.toString();
+
+
+    QByteArray response = executeRequest(prepareUrl(query));
 
     QJsonDocument loadDoc(QJsonDocument::fromJson(response));
     QJsonObject obj = loadDoc.object();

@@ -347,7 +347,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::openDialog()
 {
-    aboutDialog = new AboutDialog;
+    aboutDialog = new AboutDialog(this->geometry());
     aboutDialog->setAttribute(Qt::WA_DeleteOnClose, true);
     aboutDialog->show();
 }
