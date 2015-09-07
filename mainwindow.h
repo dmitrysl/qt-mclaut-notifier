@@ -61,6 +61,7 @@ private:
 #ifdef Q_WS_WIN
     QSysInfo::WinVersion winType;
 #endif
+    bool isAppRunning = false;
     QSettings *settings;
     Helper helper;
     bool isConnectedToNetwork = false;

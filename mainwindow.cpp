@@ -27,6 +27,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    isAppRunning = true;
     ui->setupUi(this);
 
 //    setWindowFlags(windowFlags() |= Qt::FramelessWindowHint);
@@ -63,6 +64,7 @@ MainWindow::MainWindow(QWidget *parent) :
     {
         show();
     }
+    isAppRunning = false;
 }
 
 
@@ -185,7 +187,7 @@ void MainWindow::updateStatistic()
             }
         }
 
-        if (trayStatus == 2)
+        if (trayStatus == 2 && !isAppRunning)
         {
             accountInfo.inProgress = false;
             return;
