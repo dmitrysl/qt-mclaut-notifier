@@ -10,3 +10,7 @@ Utils::~Utils()
 
 }
 
+QString Utils::buildTooltipMessage(QString details)
+{
+    return "McLaut Notifier (" + details + ")";
+}

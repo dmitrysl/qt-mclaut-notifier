@@ -102,7 +102,6 @@ void MainWindow::updateAppProperties()
 #endif
 }
 
-
 void MainWindow::setupTrayIcon()
 {
     QMenu * trayIconMenu = new QMenu();
@@ -129,8 +128,9 @@ void MainWindow::setupTrayIcon()
     trayIconMenu->addAction(actionExit);
 
     tray = new QSystemTrayIcon(QIcon(":/images/wheatgrass-tray-icon-32.png"), this);
-
+    tray->setToolTip("McLaut Notifier");
     tray->setContextMenu(trayIconMenu);
+
     tray->show();
 
     QTimer *timer = new QTimer(this);
@@ -273,12 +273,14 @@ void MainWindow::actionShowWindow()
 
 void MainWindow::actionOnline()
 {
+    tray->setToolTip(Utils::buildTooltipMessage("Online"));
     trayStatus = 1;
     updateTrayIcon();
 }
 
 void MainWindow::actionAway()
 {
+    tray->setToolTip(Utils::buildTooltipMessage("Away"));
     trayStatus = 2;
     updateTrayIcon();
 }

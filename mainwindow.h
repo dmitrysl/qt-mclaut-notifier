@@ -13,6 +13,7 @@
 
 #include "aboutdialog.h"
 #include "helper.h"
+#include "utils.h"
 
 namespace Ui {
 class MainWindow;
@@ -56,6 +57,7 @@ private slots:
     void on_actionStore_Settings_triggered();
     void on_runOnbootCheckBox_clicked();
     void on_startMinimizedCheckBox_clicked();
+
 
 private:
 #ifdef Q_WS_WIN

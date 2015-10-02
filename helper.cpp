@@ -13,6 +13,8 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
+#include <QCryptographicHash>
+
 #include "helper.h"
 #include "appsettingsstorage.h"
 
@@ -107,6 +109,8 @@ bool Helper::isConnectedToNetwork()
 
 QString Helper::encode(const QString &string)
 {
+//    QCryptographicHash hash(QCryptographicHash::Sha512);
+//    return QCryptographicHash.hash(string, QCryptographicHash::Sha512);
     QByteArray ba;
     ba.append(string);
     return ba.toBase64();
@@ -114,6 +118,9 @@ QString Helper::encode(const QString &string)
 
 QString Helper::decode(const QString &string)
 {
+//    QCryptographicHash hash(QCryptographicHash::Sha512);
+//    hash.addData((string));
+//    return QString(hash.result());
     QByteArray ba;
     ba.append(string);
     return QByteArray::fromBase64(ba);
