@@ -38,6 +38,7 @@ MainWindow::MainWindow(QWidget *parent) :
     setupTrayIcon();
 
     ui->mainToolBar->hide();
+    ui->result->setReadOnly(true);
 
     //QString applicationLocation = QDesktopServices::storageLocation(QDesktopServices::ApplicationsLocation);
 
@@ -183,6 +184,7 @@ void MainWindow::updateStatistic()
             if (!authorized)
             {
                 accountInfo.inProgress = false;
+                ui->result->setText("Not authorized.");
                 return;
             }
         }
@@ -197,8 +199,8 @@ void MainWindow::updateStatistic()
 
         User user = helper.getInfo(accountInfo);
 
-        helper.getPayments(accountInfo);
-        helper.getWithdrawals(accountInfo);
+        accountInfo.payments = helper.getPayments(accountInfo);
+        accountInfo.withdrawals = helper.getWithdrawals(accountInfo);
 
         ui->statusBar->showMessage("Information recieved", 2000);
 
@@ -489,12 +491,14 @@ void MainWindow::checkStatistics()
     if (accountInfo.balance < 10.0 && accountInfo.showErrorNotification) {
         QString msg = QString("Остаток: ") + QString::number(accountInfo.balance, 'f', 2) + QString("грн. Нужно пополнить счет.");
         showMessage(msg, QString("Пополнение счета!!!"), QSystemTrayIcon::Critical, 10);
+        ui->result->setText(msg);
     } else if (accountInfo.showInfoNotification) {
-        QString message = "Login: " + accountInfo.login + "\n";
+        QString message = "";//"Login: " + accountInfo.login + "\n";
         message += "Account: " + QString::number(accountInfo.account, 'f', 0) + "\n";
         message += "User: " + accountInfo.name + "\n";
         message += "Balance: " + QString::number(accountInfo.balance, 'f', 2) + " грн.";
         showMessage(message, "Account statistics");
+        ui->result->setText(accountInfo.toString());
     }
 }
 

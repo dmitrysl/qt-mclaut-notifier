@@ -75,6 +75,8 @@ struct AccountInfo {
     bool inProgress;
     bool showInfoNotification;
     bool showErrorNotification;
+    QList<Payment> payments;
+    QList<Payment> withdrawals;
     AccountInfo& operator=(AccountInfo const &info)
     {
         id = info.id;
@@ -91,7 +93,43 @@ struct AccountInfo {
         inProgress = info.inProgress;
         showInfoNotification = info.showInfoNotification;
         showErrorNotification = info.showErrorNotification;
+        payments = info.payments;
+        withdrawals = info.withdrawals;
         return *this;
+    }
+    QString toString()
+    {
+        QString message = "Account statistics \n";
+        message += "Login: " + login + "\n";
+        message += "Account: " + QString::number(account, 'f', 0) + "\n";
+        message += "User: " + name + "\n";
+        message += "Balance: " + QString::number(balance, 'f', 2) + " грн.\n";
+        message += "Payment Last Date: " + paymentLastDate.toString() + "\n";
+        if (payments.length() > 0)
+        {
+            message += "\n";
+            message += "Payments:\n";
+            foreach (Payment pmt, payments)
+            {
+                message += "Sum before: " + QString::number(pmt.sum_before, 'f', 2) + " грн. ";
+                message += "Sum: " + QString::number(pmt.sum, 'f', 2) + " грн. ";
+                message += "Date: " + pmt.date.toString();
+                message += "\n";
+            }
+        }
+        if (withdrawals.length() > 0)
+        {
+            message += "\n";
+            message += "Withdrawals:\n";
+            foreach (Payment pmt, withdrawals)
+            {
+                message += "Sum before: " + QString::number(pmt.sum_before, 'f', 2) + " грн. ";
+                message += "Sum: " + QString::number(pmt.sum, 'f', 2) + " грн. ";
+                message += "Date: " + pmt.date.toString();
+                message += "\n";
+            }
+        }
+        return message;
     }
 };
 typedef struct AccountInfo AccountInfo;

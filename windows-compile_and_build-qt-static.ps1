@@ -71,12 +71,17 @@
   Do not wait for the user to press <enter> at end of execution. By default,
   execute a "pause" instruction at the end of execution, which is useful
   when the script was run from Windows Explorer.
+  
+  PowerShell.exe -ExecutionPolicy Unrestricted
+  Set-ExecutionPolicy Unrestricted
 #>
+
+
 
 [CmdletBinding()]
 param(
-    $QtSrcUrl = "http://download.qt-project.org/official_releases/qt/5.4/5.4.1/single/qt-everywhere-opensource-src-5.4.1.7z",
-    $QtStaticDir = "E:\Qt\Static",
+    $QtSrcUrl = "http://download.qt.io/official_releases/qt/5.7/5.7.1/single/qt-everywhere-opensource-src-5.7.1.7z",
+    $QtStaticDir = "D:\Qt\Static",
     $QtVersion = "",
     $MingwDir = "",
     [switch]$NoPause = $false
@@ -114,7 +119,7 @@ function Main
     # Get MinGW root directory, if not specified on the command line.
     if (-not $MingwDir) {
         # Search all instances of gcc.exe from C:\Qt prebuilt environment.
-        $GccList = @(Get-ChildItem -Path E:\Qt\*\Tools\mingw*\bin\gcc.exe | ForEach-Object FullName | Sort-Object)
+        $GccList = @(Get-ChildItem -Path D:\Qt\*\Tools\mingw*\bin\gcc.exe | ForEach-Object FullName | Sort-Object)
         if ($GccList.Length -eq 0) {
             Exit-Script "MinGW environment not found, no Qt prebuilt version?"
         }
@@ -163,7 +168,10 @@ DEFINES += QT_STATIC_BUILD
 
     # Configure, compile and install Qt.
     Push-Location $QtSrcDir
-    cmd /c "configure.bat -static -debug-and-release -platform win32-g++ -prefix $QtDir `        -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -qt-sql-sqlite -no-openssl `        -opensource -confirm-license `        -make libs -nomake tools -nomake examples -nomake tests"
+    cmd /c "configure.bat -static -debug-and-release -platform win32-g++ -prefix $QtDir `
+        -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -qt-sql-sqlite -no-openssl `
+        -opensource -confirm-license `
+        -make libs -nomake tools -nomake examples -nomake tests"
     mingw32-make -k -j4
     mingw32-make -k install
     Pop-Location
