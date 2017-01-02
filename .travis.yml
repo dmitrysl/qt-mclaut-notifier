@@ -2,6 +2,9 @@
 
 language: cpp
 
+notifications:
+  slack: homedevworld:nQJuwptZIMX2Ajd0C8NnfTWc
+  
 compiler:
     - gcc
 
